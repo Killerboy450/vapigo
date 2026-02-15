@@ -5,9 +5,16 @@ const mobile = document.getElementById("mobile").value;
 const pickup = document.getElementById("pickup").value;
 const drop = document.getElementById("drop").value;
 
+if (!pickup || !drop) {
+alert("Please enter pickup and drop location");
+return;
+}
+
+// Save booking in backend
 fetch("https://vapigo-backend.onrender.com/book_cab", {
 
 method: "POST",
+
 headers: {
 "Content-Type": "application/json"
 },
@@ -23,19 +30,14 @@ drop: drop
 .then(response => response.json())
 .then(data => {
 
-let message =
-"New Booking:%0A" +
-"Name: " + name + "%0A" +
-"Mobile: " + mobile + "%0A" +
-"Pickup: " + pickup + "%0A" +
-"Drop: " + drop;
+// Redirect to Google Maps
+let mapURL =
+"https://www.google.com/maps/dir/" +
+encodeURIComponent(pickup) +
+"/" +
+encodeURIComponent(drop);
 
-let whatsappNumber = "916359495943";  // YOUR WHATSAPP NUMBER
-
-let whatsappURL =
-"https://wa.me/" + whatsappNumber + "?text=" + message;
-
-window.open(whatsappURL, "_blank");
+window.open(mapURL, "_blank");
 
 });
 }
