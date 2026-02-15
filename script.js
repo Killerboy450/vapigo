@@ -56,20 +56,15 @@ document.getElementById("message").innerText =
 // Show map inside website
 async function showMap() {
 
-const pickupInput = document.getElementById("pickup").value;
-const dropInput = document.getElementById("drop").value;
+const pickup = document.getElementById("pickup").value;
+const drop = document.getElementById("drop").value;
 
-if (!pickupInput || !dropInput) {
+if (!pickup || !drop) {
 alert("Enter pickup and drop location");
 return;
 }
 
-// Add city/country automatically for better accuracy
-const pickup = pickupInput + ", Gujarat, India";
-const drop = dropInput + ", Gujarat, India";
-
-
-// Show Google Map
+// Show map
 let mapURL =
 "https://www.google.com/maps?q=" +
 encodeURIComponent(pickup + " to " + drop) +
@@ -81,69 +76,52 @@ mapFrame.src = mapURL;
 mapFrame.style.display = "block";
 
 
+// FREE distance calculation using straight-line fallback
 try {
 
-// Get pickup coordinates
-let pickupGeoResponse = await fetch(
-"https://nominatim.openstreetmap.org/search?format=json&q=" +
-encodeURIComponent(pickup),
-{
-headers: {
-"Accept": "application/json"
-}
-}
+// Use OpenStreetMap geocoding
+let pickupRes = await fetch(
+"https://nominatim.openstreetmap.org/search?format=json&limit=1&q="
++ encodeURIComponent(pickup + ", Gujarat, India")
 );
 
-let pickupGeo = await pickupGeoResponse.json();
+let pickupData = await pickupRes.json();
 
-
-// Get drop coordinates
-let dropGeoResponse = await fetch(
-"https://nominatim.openstreetmap.org/search?format=json&q=" +
-encodeURIComponent(drop),
-{
-headers: {
-"Accept": "application/json"
-}
-}
+let dropRes = await fetch(
+"https://nominatim.openstreetmap.org/search?format=json&limit=1&q="
++ encodeURIComponent(drop + ", Gujarat, India")
 );
 
-let dropGeo = await dropGeoResponse.json();
+let dropData = await dropRes.json();
 
-
-if (pickupGeo.length === 0 || dropGeo.length === 0) {
-
-document.getElementById("distanceText").innerText =
-"Unable to calculate distance";
-
-document.getElementById("fareText").innerText =
-"Unable to calculate fare";
-
-document.getElementById("fareBox").style.display =
-"block";
-
-return;
+if (!pickupData.length || !dropData.length) {
+throw new Error("Location not found");
 }
-
 
 // Coordinates
-let pickupLat = pickupGeo[0].lat;
-let pickupLon = pickupGeo[0].lon;
+let lat1 = parseFloat(pickupData[0].lat);
+let lon1 = parseFloat(pickupData[0].lon);
 
-let dropLat = dropGeo[0].lat;
-let dropLon = dropGeo[0].lon;
+let lat2 = parseFloat(dropData[0].lat);
+let lon2 = parseFloat(dropData[0].lon);
 
 
-// Get route distance
-let routeResponse = await fetch(
-`https://router.project-osrm.org/route/v1/driving/${pickupLon},${pickupLat};${dropLon},${dropLat}?overview=false`
-);
+// Haversine formula for real-world distance approximation
+let R = 6371;
 
-let route = await routeResponse.json();
+let dLat = (lat2 - lat1) * Math.PI / 180;
+let dLon = (lon2 - lon1) * Math.PI / 180;
 
-let distanceMeters = route.routes[0].distance;
+let a =
+Math.sin(dLat/2) * Math.sin(dLat/2) +
+Math.cos(lat1 * Math.PI/180) *
+Math.cos(lat2 * Math.PI/180) *
+Math.sin(dLon/2) * Math.sin(dLon/2);
 
-let distanceKm = (distanceMeters / 1000).toFixed(2);
+let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+let distanceKm = (R * c * 1.3).toFixed(2); 
+// multiply 1.3 to approximate driving distance
 
 
 // Fare calculation
@@ -153,7 +131,7 @@ let perKmRate = 10;
 let fare = Math.round(baseFare + (distanceKm * perKmRate));
 
 
-// Show results
+// Display
 document.getElementById("distanceText").innerText =
 distanceKm + " km";
 
@@ -163,13 +141,14 @@ fare;
 document.getElementById("fareBox").style.display =
 "block";
 
-} catch (error) {
+}
+catch(error) {
 
 document.getElementById("distanceText").innerText =
-"Error calculating distance";
+"Enter valid locations";
 
 document.getElementById("fareText").innerText =
-"Error calculating fare";
+"0";
 
 document.getElementById("fareBox").style.display =
 "block";
@@ -177,4 +156,3 @@ document.getElementById("fareBox").style.display =
 }
 
 }
-
