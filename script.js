@@ -10,11 +10,10 @@ alert("Please enter pickup and drop location");
 return;
 }
 
-// Save booking in backend
+// Save booking
 fetch("https://vapigo-backend.onrender.com/book_cab", {
 
 method: "POST",
-
 headers: {
 "Content-Type": "application/json"
 },
@@ -30,14 +29,16 @@ drop: drop
 .then(response => response.json())
 .then(data => {
 
-// Redirect to Google Maps
+// Show map inside website
 let mapURL =
-"https://www.google.com/maps/dir/" +
-encodeURIComponent(pickup) +
-"/" +
-encodeURIComponent(drop);
+"https://www.google.com/maps?q=" +
+encodeURIComponent(pickup + " to " + drop) +
+"&output=embed";
 
-window.open(mapURL, "_blank");
+let mapFrame = document.getElementById("mapFrame");
+
+mapFrame.src = mapURL;
+mapFrame.style.display = "block";
 
 });
 }
