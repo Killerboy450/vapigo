@@ -1,5 +1,5 @@
 function bookRide(){
-fetch("http://127.0.0.1:5000/book_cab",{
+fetch("https://vapigo-backend.onrender.com/book_cab",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
