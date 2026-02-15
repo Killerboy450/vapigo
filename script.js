@@ -1,70 +1,19 @@
-// Confirm booking and open WhatsApp
-function confirmBooking() {
-
-const name = document.getElementById("name").value;
-const mobile = document.getElementById("mobile").value;
-const pickup = document.getElementById("pickup").value;
-const drop = document.getElementById("drop").value;
-
-if (!name || !mobile || !pickup || !drop) {
-alert("Please fill all fields");
-return;
-}
-
-// Save booking in backend
-fetch("https://vapigo-backend.onrender.com/book_cab", {
-
-method: "POST",
-
-headers: {
-"Content-Type": "application/json"
-},
-
-body: JSON.stringify({
-name: name,
-mobile: mobile,
-pickup: pickup,
-drop: drop
-})
-
-})
-.then(response => response.json())
-.then(data => {
-
-// WhatsApp message
-let message =
-"New Booking:%0A" +
-"Name: " + name + "%0A" +
-"Mobile: " + mobile + "%0A" +
-"Pickup: " + pickup + "%0A" +
-"Drop: " + drop;
-
-let whatsappNumber = "916359495943"; // your number
-
-let whatsappURL =
-"https://wa.me/" + whatsappNumber + "?text=" + message;
-
-window.open(whatsappURL, "_blank");
-
-document.getElementById("message").innerText =
-"Booking saved. Please confirm on WhatsApp.";
-
-});
-}
-
-
-// Show map inside website
 async function showMap() {
 
-const pickup = document.getElementById("pickup").value;
-const drop = document.getElementById("drop").value;
+const pickupInput = document.getElementById("pickup").value;
+const dropInput = document.getElementById("drop").value;
 
-if (!pickup || !drop) {
+if (!pickupInput || !dropInput) {
 alert("Enter pickup and drop location");
 return;
 }
 
-// Show map
+// Add city/country automatically for better accuracy
+const pickup = pickupInput + ", Gujarat, India";
+const drop = dropInput + ", Gujarat, India";
+
+
+// Show Google Map
 let mapURL =
 "https://www.google.com/maps?q=" +
 encodeURIComponent(pickup + " to " + drop) +
@@ -76,22 +25,52 @@ mapFrame.src = mapURL;
 mapFrame.style.display = "block";
 
 
-// Convert address to coordinates using Nominatim (free)
-let pickupGeo = await fetch(
-"https://nominatim.openstreetmap.org/search?format=json&q=" +
-encodeURIComponent(pickup)
-).then(res => res.json());
+try {
 
-let dropGeo = await fetch(
+// Get pickup coordinates
+let pickupGeoResponse = await fetch(
 "https://nominatim.openstreetmap.org/search?format=json&q=" +
-encodeURIComponent(drop)
-).then(res => res.json());
+encodeURIComponent(pickup),
+{
+headers: {
+"Accept": "application/json"
+}
+}
+);
 
-if (!pickupGeo.length || !dropGeo.length) {
-alert("Location not found");
+let pickupGeo = await pickupGeoResponse.json();
+
+
+// Get drop coordinates
+let dropGeoResponse = await fetch(
+"https://nominatim.openstreetmap.org/search?format=json&q=" +
+encodeURIComponent(drop),
+{
+headers: {
+"Accept": "application/json"
+}
+}
+);
+
+let dropGeo = await dropGeoResponse.json();
+
+
+if (pickupGeo.length === 0 || dropGeo.length === 0) {
+
+document.getElementById("distanceText").innerText =
+"Unable to calculate distance";
+
+document.getElementById("fareText").innerText =
+"Unable to calculate fare";
+
+document.getElementById("fareBox").style.display =
+"block";
+
 return;
 }
 
+
+// Coordinates
 let pickupLat = pickupGeo[0].lat;
 let pickupLon = pickupGeo[0].lon;
 
@@ -99,10 +78,12 @@ let dropLat = dropGeo[0].lat;
 let dropLon = dropGeo[0].lon;
 
 
-// Get real driving distance using OSRM (FREE)
-let route = await fetch(
+// Get route distance
+let routeResponse = await fetch(
 `https://router.project-osrm.org/route/v1/driving/${pickupLon},${pickupLat};${dropLon},${dropLat}?overview=false`
-).then(res => res.json());
+);
+
+let route = await routeResponse.json();
 
 let distanceMeters = route.routes[0].distance;
 
@@ -116,7 +97,7 @@ let perKmRate = 10;
 let fare = Math.round(baseFare + (distanceKm * perKmRate));
 
 
-// Display results
+// Show results
 document.getElementById("distanceText").innerText =
 distanceKm + " km";
 
@@ -125,5 +106,18 @@ fare;
 
 document.getElementById("fareBox").style.display =
 "block";
+
+} catch (error) {
+
+document.getElementById("distanceText").innerText =
+"Error calculating distance";
+
+document.getElementById("fareText").innerText =
+"Error calculating fare";
+
+document.getElementById("fareBox").style.display =
+"block";
+
+}
 
 }
